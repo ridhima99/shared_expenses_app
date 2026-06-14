@@ -1,304 +1,181 @@
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import { useParams } from "next/navigation";
+// import { notFound } from "next/navigation";
+// import { auth } from "@/auth";
+// import { groupService } from "@/services/group/groupService";
+// import { expenseService } from "@/services/expense/expenseService";
 // import Link from "next/link";
-// import { useForm } from "react-hook-form";
-
-// type Expense = {
-//   id: string;
-//   title: string;
-//   description: string | null;
-//   amount: number;
-//   currency: string;
-//   date: string;
-//   splitType: string;
-//   payer: {
-//     name: string | null;
-//     email: string;
-//   };
-//   participants: {
-//     user: {
-//       name: string | null;
-//       email: string;
-//     };
-//     amount: number;
-//   }[];
-// };
-
-// type FormData = {
-//   title: string;
-//   description: string;
-//   amount: string;
-//   currency: string;
-//   date: string;
-//   paidBy: string;
-//   splitType: string;
-// };
-
-// export default function ExpensesPage() {
-//   const params = useParams();
-//   const groupId = params.groupId as string;
+// import CreateExpenseModal from "@/components/expenses/CreateExpenseModal";
+// import CsvImportButton from "@/components/expenses/CsvImportButton";
+// export default async function ExpensesPage({ params }: { params: Promise<{ groupId: string }> }) {
+//   const session = await auth();
+//   if (!session?.user?.id) return notFound();
   
-//   const [expenses, setExpenses] = useState<Expense[]>([]);
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [showForm, setShowForm] = useState(false);
-//   const { register, handleSubmit } = useForm<FormData>();
+//   const resolvedParams = await params;
+//   const groupId = resolvedParams.groupId;
+  
+//   try {
+//     const group = await groupService.getGroup(groupId, session.user.id);
+//     if (!group) return notFound();
 
-//   useEffect(() => {
-//     fetchExpenses();
-//   }, [groupId]);
-
-//   const fetchExpenses = async () => {
-//     const sessionRes = await fetch("/api/auth/session");
-//     const session = await sessionRes.json();
+//     // Fetch expenses using the backend service
+//     const expenses = await expenseService.getExpenses(groupId, session.user.id);
     
-//     const res = await fetch(`/api/expenses?groupId=${groupId}&userId=${session.user.id}`);
-//     const data = await res.json();
-//     setExpenses(data);
-//     setIsLoading(false);
-//   };
-
-//   const onCreateExpense = async (data: FormData) => {
-//     const sessionRes = await fetch("/api/auth/session");
-//     const session = await sessionRes.json();
-    
-//     const res = await fetch("/api/expenses", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({
-//         groupId,
-//         title: data.title,
-//         description: data.description,
-//         amount: parseFloat(data.amount),
-//         currency: data.currency,
-//         date: data.date,
-//         paidBy: session.user.id,
-//         splitType: data.splitType,
-//       }),
-//     });
-    
-//     if (res.ok) {
-//       setShowForm(false);
-//       fetchExpenses();
-//     }
-//   };
-
-//   if (isLoading) return <div className="p-8 text-center">Loading...</div>;
-
-//   return (
-//     <div className="min-h-screen bg-background p-8">
-//       <div className="max-w-6xl mx-auto">
-//         <div className="mb-8">
-//           <Link href={`/dashboard/groups/${groupId}`} className="text-primary hover:underline">
-//             ← Back to Group
-//           </Link>
-//         </div>
-
-//         <div className="flex justify-between items-center mb-6">
-//           <h1 className="text-3xl font-bold">Expenses</h1>
-//           <button
-//             onClick={() => setShowForm(true)}
-//             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition"
-//           >
-//             Add Expense
-//           </button>
-//         </div>
-
-//         {showForm && (
-//           <div className="mb-8 p-6 border rounded-lg">
-//             <h2 className="text-xl font-semibold mb-4">Add New Expense</h2>
-//             <form onSubmit={handleSubmit(onCreateExpense)} className="space-y-4">
-//               <div>
-//                 <label className="block text-sm font-medium mb-2">Title</label>
-//                 <input
-//                   type="text"
-//                   {...register("title", { required: true })}
-//                   className="w-full px-3 py-2 border rounded-lg"
-//                 />
-//               </div>
-
-//               <div>
-//                 <label className="block text-sm font-medium mb-2">Description</label>
-//                 <input
-//                   type="text"
-//                   {...register("description")}
-//                   className="w-full px-3 py-2 border rounded-lg"
-//                 />
-//               </div>
-
-//               <div className="grid grid-cols-2 gap-4">
-//                 <div>
-//                   <label className="block text-sm font-medium mb-2">Amount</label>
-//                   <input
-//                     type="number"
-//                     step="0.01"
-//                     {...register("amount", { required: true })}
-//                     className="w-full px-3 py-2 border rounded-lg"
-//                   />
-//                 </div>
-
-//                 <div>
-//                   <label className="block text-sm font-medium mb-2">Currency</label>
-//                   <select
-//                     {...register("currency")}
-//                     className="w-full px-3 py-2 border rounded-lg"
-//                   >
-//                     <option value="INR">INR</option>
-//                     <option value="USD">USD</option>
-//                   </select>
-//                 </div>
-//               </div>
-
-//               <div>
-//                 <label className="block text-sm font-medium mb-2">Date</label>
-//                 <input
-//                   type="date"
-//                   {...register("date", { required: true })}
-//                   className="w-full px-3 py-2 border rounded-lg"
-//                 />
-//               </div>
-
-//               <div>
-//                 <label className="block text-sm font-medium mb-2">Split Type</label>
-//                 <select
-//                   {...register("splitType")}
-//                   className="w-full px-3 py-2 border rounded-lg"
-//                 >
-//                   <option value="EQUAL">Equal Split</option>
-//                   <option value="PERCENTAGE">Percentage Split</option>
-//                   <option value="SHARE">Share Split</option>
-//                   <option value="EXACT">Exact Amount</option>
-//                 </select>
-//               </div>
-
-//               <div className="flex gap-4">
-//                 <button
-//                   type="submit"
-//                   className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
-//                 >
-//                   Add Expense
-//                 </button>
-//                 <button
-//                   onClick={() => setShowForm(false)}
-//                   className="px-4 py-2 bg-secondary rounded-lg"
-//                 >
-//                   Cancel
-//                 </button>
-//               </div>
-//             </form>
+//     return (
+//       <div className="max-w-5xl mx-auto space-y-8 p-6">
+//         {/* Header */}
+//         <div className="flex items-center justify-between mb-8">
+//           <div>
+//             <div className="flex items-center space-x-2 text-sm text-slate-500 mb-2">
+//               <Link href={`/dashboard/groups/${groupId}`} className="hover:text-blue-600 transition-colors">
+//                 {group.name}
+//               </Link>
+//               <span>/</span>
+//               <span className="text-slate-800 font-medium">Expenses</span>
+//             </div>
+//             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Group Expenses</h1>
 //           </div>
-//         )}
+          
+//           {/* This is the modal we just built! */}
+//           <CreateExpenseModal 
+//             groupId={groupId} 
+//             members={group.members} 
+//             currentUserId={session.user.id} 
+//           />
+//         </div>
 
-//         <div className="border rounded-lg">
+//         {/* Expenses List */}
+//         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 //           {expenses.length === 0 ? (
-//             <div className="p-8 text-center text-muted-foreground">No expenses yet</div>
+//             <div className="p-12 text-center text-slate-500">
+//               <p className="text-lg">No expenses recorded yet.</p>
+//               <p className="text-sm mt-1">Click the button above to add your first expense!</p>
+//             </div>
 //           ) : (
-//             expenses.map((expense) => (
-//               <div key={expense.id} className="p-4 border-t">
-//                 <div className="flex justify-between items-start mb-2">
-//                   <h3 className="font-semibold">{expense.title}</h3>
-//                   <p className="font-semibold">
-//                     {expense.currency === 'INR' ? '₹' : '$'}{expense.amount}
-//                   </p>
+//             <div className="divide-y divide-slate-100">
+//               {expenses.map((expense) => (
+//                 <div key={expense.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+//                   <div className="flex items-center space-x-4">
+//                     <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 text-xl border border-blue-100">
+//                       🧾
+//                     </div>
+//                     <div>
+//                       <h3 className="font-bold text-slate-900 text-lg">{expense.title}</h3>
+//                       <p className="text-sm text-slate-500">
+//                         Paid by <span className="font-medium text-slate-700">{expense.payer.name || expense.payer.email}</span> • {new Date(expense.date).toLocaleDateString()}
+//                       </p>
+//                     </div>
+//                   </div>
+                  
+//                   <div className="text-right">
+//                     <p className="text-xl font-bold text-slate-900">
+//                       {expense.currency === 'INR' ? '₹' : '$'}{Number(expense.amount).toFixed(2)}
+//                     </p>
+//                     <span className="inline-flex mt-1 items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 capitalize">
+//                       {expense.splitType.toLowerCase()} Split
+//                     </span>
+//                   </div>
 //                 </div>
-//                 {expense.description && (
-//                   <p className="text-sm text-muted-foreground mb-2">{expense.description}</p>
-//                 )}
-//                 <div className="flex justify-between text-sm text-muted-foreground">
-//                   <span>{new Date(expense.date).toLocaleDateString()}</span>
-//                   <span>Split: {expense.splitType}</span>
-//                 </div>
-//                 <div className="text-sm mt-2">
-//                   <span className="text-muted-foreground">Paid by </span>
-//                   <span className="font-medium">{expense.payer.name || expense.payer.email}</span>
-//                 </div>
-//               </div>
-//             ))
+//               ))}
+//             </div>
 //           )}
 //         </div>
 //       </div>
-//     </div>
-//   );
+//     );
+//   } catch (error) {
+//     console.error("Error loading expenses:", error);
+//     return notFound();
+//   }
 // }
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { notFound } from "next/navigation";
+import { auth } from "@/auth";
+import { groupService } from "@/services/group/groupService";
+import { expenseService } from "@/services/expense/expenseService";
 import Link from "next/link";
-import ExpenseList from "@/components/ExpenseList";
-import CreateExpenseForm from "@/components/CreateExpenseForm";
+import CreateExpenseModal from "@/components/expenses/CreateExpenseModal";
+import CsvImportButton from "@/components/expenses/CsvImportButton"; // <-- New Import
 
-type Expense = {
-  id: string;
-  title: string;
-  description: string | null;
-  amount: number;
-  currency: string;
-  date: string;
-  splitType: string;
-  payer: {
-    name: string | null;
-    email: string;
-  };
-  participants: {
-    user: {
-      name: string | null;
-      email: string;
-    };
-    amount: number;
-  }[];
-};
-
-export default function ExpensesPage() {
-  const params = useParams();
-  const groupId = params.groupId as string;
+export default async function ExpensesPage({ params }: { params: Promise<{ groupId: string }> }) {
+  const session = await auth();
+  if (!session?.user?.id) return notFound();
   
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const resolvedParams = await params;
+  const groupId = resolvedParams.groupId;
+  
+  try {
+    const group = await groupService.getGroup(groupId, session.user.id);
+    if (!group) return notFound();
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [groupId]);
-
-  const fetchExpenses = async () => {
-    const sessionRes = await fetch("/api/auth/session");
-    const session = await sessionRes.json();
+    // Fetch expenses using the backend service
+    const expenses = await expenseService.getExpenses(groupId, session.user.id);
     
-    const res = await fetch(`/api/expenses?groupId=${groupId}&userId=${session.user.id}`);
-    const data = await res.json();
-    setExpenses(data);
-    setIsLoading(false);
-  };
-
-  if (isLoading) return <div className="p-8 text-center">Loading...</div>;
-
-  return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <Link href={`/dashboard/groups/${groupId}`} className="text-primary hover:underline">
-            ← Back to Group
-          </Link>
+    return (
+      <div className="max-w-5xl mx-auto space-y-8 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="flex items-center space-x-2 text-sm text-slate-500 mb-2">
+              <Link href={`/dashboard/groups/${groupId}`} className="hover:text-blue-600 transition-colors">
+                {group.name}
+              </Link>
+              <span>/</span>
+              <span className="text-slate-800 font-medium">Expenses</span>
+            </div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Group Expenses</h1>
+          </div>
+          
+          {/* --- NEW BUTTON CONTAINER IS HERE --- */}
+          <div className="flex items-center space-x-3">
+            <CsvImportButton 
+              groupId={groupId} 
+              currentUserId={session.user.id} 
+            />
+            <CreateExpenseModal 
+              groupId={groupId} 
+              members={group.members} 
+              currentUserId={session.user.id} 
+            />
+          </div>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Expenses</h1>
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition"
-          >
-            Add Expense
-          </button>
+        {/* Expenses List */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          {expenses.length === 0 ? (
+            <div className="p-12 text-center text-slate-500">
+              <p className="text-lg">No expenses recorded yet.</p>
+              <p className="text-sm mt-1">Click the button above to add your first expense!</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {expenses.map((expense) => (
+                <div key={expense.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 text-xl border border-blue-100">
+                      🧾
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg">{expense.title}</h3>
+                      <p className="text-sm text-slate-500">
+                        Paid by <span className="font-medium text-slate-700">{expense.payer.name || expense.payer.email}</span> • {new Date(expense.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-slate-900">
+                      {expense.currency === 'INR' ? '₹' : '$'}{Number(expense.amount).toFixed(2)}
+                    </p>
+                    <span className="inline-flex mt-1 items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 capitalize">
+                      {expense.splitType.toLowerCase()} Split
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-
-        {showForm && (
-          <CreateExpenseForm groupId={groupId} onSuccess={() => { setShowForm(false); fetchExpenses(); }} />
-        )}
-
-        <ExpenseList expenses={expenses} />
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error("Error loading expenses:", error);
+    return notFound();
+  }
 }
