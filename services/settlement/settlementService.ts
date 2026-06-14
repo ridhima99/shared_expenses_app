@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma/client';
 import type { CreateSettlementInput } from '@/validations/settlement/schema';
 import { getSession } from '@/lib/auth/session';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from 'decimal.js';
 import { balanceService } from '@/services/balance/balanceService';
 
 export class SettlementService {
@@ -56,8 +56,14 @@ export class SettlementService {
   async optimizeSettlements(groupId: string, dateFrom?: Date, dateTo?: Date) {
     const balances = await balanceService.calculateGroupBalances(groupId, dateFrom, dateTo);
     
-    const creditors = balances.filter((b: any) => b.net.gt(0)).sort((a: any, b: any) => b.net.gt(a.net) ? 1 : -1);
-    const debtors = balances.filter((b: any) => b.net.lt(0)).sort((a: any, b: any) => a.net.lt(b.net) ? 1 : -1);
+    // Sort and cast to Decimal for safe math
+    const creditors = balances
+      .filter((b: any) => new Decimal(b.net).gt(0))
+      .sort((a: any, b: any) => new Decimal(b.net).comparedTo(new Decimal(a.net)));
+      
+    const debtors = balances
+      .filter((b: any) => new Decimal(b.net).lt(0))
+      .sort((a: any, b: any) => new Decimal(a.net).comparedTo(new Decimal(b.net)));
     
     const optimizedSettlements: any[] = [];
     
@@ -65,8 +71,8 @@ export class SettlementService {
     let debtorIdx = 0;
     
     while (creditorIdx < creditors.length && debtorIdx < debtors.length) {
-      const creditor = creditors[creditorIdx];
-      const debtor = debtors[debtorIdx];
+      const creditor = { ...creditors[creditorIdx], net: new Decimal(creditors[creditorIdx].net) };
+      const debtor = { ...debtors[debtorIdx], net: new Decimal(debtors[debtorIdx].net) };
       
       const debtorAmount = debtor.net.times(-1);
       const amount = debtorAmount.lt(creditor.net) ? debtorAmount : creditor.net;
@@ -80,11 +86,12 @@ export class SettlementService {
         });
       }
       
-      creditor.net = creditor.net.minus(amount);
-      debtor.net = debtor.net.plus(amount);
+      // Update local net values and store back as numbers
+      creditors[creditorIdx].net = creditor.net.minus(amount).toNumber();
+      debtors[debtorIdx].net = debtor.net.plus(amount).toNumber();
       
-      if (creditor.net.eq(0)) creditorIdx++;
-      if (debtor.net.eq(0)) debtorIdx++;
+      if (new Decimal(creditors[creditorIdx].net).eq(0)) creditorIdx++;
+      if (new Decimal(debtors[debtorIdx].net).eq(0)) debtorIdx++;
     }
     
     return optimizedSettlements;

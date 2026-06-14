@@ -20,7 +20,7 @@ export class BalanceService {
   }
 
   // The main accounting engine
-  async calculateGroupBalances(groupId: string) {
+  async calculateGroupBalances(groupId: string, dateFrom?: Date, dateTo?: Date) {
     const toDate = new Date();
     
     // Get all members
@@ -33,9 +33,15 @@ export class BalanceService {
 
     // Get all expenses
     const expenses = await prisma.expense.findMany({
-      where: { groupId },
-      include: { participants: true, payer: true },
-    });
+    where: { 
+      groupId,
+      date: {
+        gte: dateFrom,
+        lte: dateTo
+      }
+    },
+    include: { participants: true, payer: true },
+  });
 
     // Get all settlements
     const settlements = await prisma.settlement.findMany({
