@@ -5,7 +5,7 @@ import { expenseService } from "@/services/expense/expenseService";
 import Link from "next/link";
 import CreateExpenseModal from "@/components/expenses/CreateExpenseModal";
 import CsvImportButton from "@/components/expenses/CsvImportButton"; // <-- New Import
-
+import DeleteExpenseButton from "@/components/expenses/DeleteExpenseButton";
 export default async function ExpensesPage({ params }: { params: Promise<{ groupId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) return notFound();
@@ -83,20 +83,7 @@ export default async function ExpensesPage({ params }: { params: Promise<{ group
                       </span>
                     </div>
 
-                    <button 
-                      onClick={async () => {
-                        if(confirm("Delete this expense?")) {
-                          await fetch('/api/delete', { 
-                            method: 'POST', 
-                            body: JSON.stringify({ type: 'expense', id: expense.id }) 
-                          });
-                          window.location.reload();
-                        }
-                      }}
-                      className="text-red-500 hover:text-red-700 text-sm ml-4 font-medium"
-                    >
-                      Delete
-                    </button>
+                    <DeleteExpenseButton expenseId={expense.id} />
                   </div>
                 </div>
               ))}
