@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
     if (type === 'member') await prisma.groupMember.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

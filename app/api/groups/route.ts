@@ -33,9 +33,8 @@ export async function POST(request: NextRequest) {
 
     const group = await groupService.createGroup(validated.data);
     return NextResponse.json(group, { status: 201 });
-  } catch (error: any) {
-    // THIS WILL PRINT THE EXACT CAUSE IN YOUR TERMINAL
-    console.error("🔥 GROUP CREATION ERROR:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
