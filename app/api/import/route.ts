@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
     const result = await importService.importCSV(groupId, csvContent);
     return NextResponse.json(result, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    let message = "An unknown error occurred";
+    if (error instanceof Error) {
+      message = error.message;
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

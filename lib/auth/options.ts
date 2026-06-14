@@ -1,9 +1,9 @@
-import { NextAuthOptions } from 'next-auth';
+import type { NextAuthConfig } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma/client';
 import { z } from 'zod';
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthConfig = {
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
